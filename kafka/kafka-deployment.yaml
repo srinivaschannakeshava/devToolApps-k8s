@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-kafka
+spec:
+  selector:
+    matchLabels:
+      app: k8s-kafka
+  template:
+    metadata:
+      labels:
+        app: k8s-kafka
+    spec:
+      containers:
+      - name: k8s-kafka
+        image: confluentinc/cp-kafka:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "1"
+        envFrom:
+          - configMapRef:
+              name: kafka-env-conf
+        ports:
+        - containerPort: 29092
+        - containerPort: 9092
+        volumeMounts:
+          - mountPath: '/var/lib/kafka/data'
+            name: kafka-data
+      volumes:
+        - name: kafka-data
+          persistentVolumeClaim:
+            claimName: kafka-pvc
+
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-env-conf
+data:
+  KAFKA_BROKER_ID: '1'
+  KAFKA_ZOOKEEPER_CONNECT: zk-service-cp:2181
+  # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
+  KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-service-cp:9092,PLAINTEXT_HOST://localhost:29092
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-service-lb
+spec:
+  selector:
+    app: k8s-kafka
+  type: LoadBalancer
+  ports:
+  - port: 29092
+    targetPort: 29092
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-service-cp
+spec:
+  selector:
+    app: k8s-kafka
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 9092
+    targetPort: 9092
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+
+
+

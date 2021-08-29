@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zk
+spec:
+  serviceName: zk
+  selector:
+    matchLabels:
+      app: zk
+  template:
+    metadata:
+      labels:
+        app: zk
+    spec:
+      containers:
+      - name: zk
+        image: 'bitnami/zookeeper:latest'
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "1"
+        env:
+          - name: ALLOW_ANONYMOUS_LOGIN
+            value: 'yes'
+        ports:
+        - containerPort: 2181
+        - containerPort: 2888
+        - containerPort: 3888
+        volumeMounts:
+          - mountPath: '/bitnami/zookeeper'
+            name: zk-data
+  volumeClaimTemplates:
+  - metadata:
+      name: zk-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+# ---
+
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: zk-pvc
+#   app: zk
+# spec:
+#   resources:
+#     requests:
+#       storage: 1Gi
+#   volumeMode: Filesystem
+#   accessModes:
+#     - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk-service-lb
+spec:
+  selector:
+    app: zk
+  type: LoadBalancer
+  ports:
+  - port: 22181
+    targetPort: 2181
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk-service-cp
+spec:
+  selector:
+    app: zk
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 2181
+    targetPort: 2181
