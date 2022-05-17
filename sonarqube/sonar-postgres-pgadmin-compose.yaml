@@ -3,7 +3,7 @@ version: '2'
 services:
   postgres:
     # container_name: postgres-db
-    image: 'sres.web.boeing.com:5000/bitnami/postgresql:latest'
+    image: 'bitnami/postgresql:latest'
     restart: always
     ports:
       - 5432:5432
@@ -18,7 +18,7 @@ services:
 
   pgadmin:
     container_name: pgadmin4_container
-    image: sres.web.boeing.com:5000/dpage/pgadmin4
+    image: dpage/pgadmin4
     restart: always
     depends_on:
       - postgres
@@ -33,7 +33,7 @@ services:
       - pgadmin
 
   sonarqube:
-    image: sres.web.boeing.com:5000/sonarqube:community
+    image: sonarqube:community
     depends_on:
       - postgres
     environment:
